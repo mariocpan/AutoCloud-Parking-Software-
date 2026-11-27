@@ -2,23 +2,23 @@ import tkinter as tk
 import sqlite3
 import hashlib
 import openpyxl
+import ctypes
 from reportlab.pdfgen import canvas
 from tkinter import filedialog
 from tkinter import ttk
 from tkinter import messagebox
 from datetime import datetime, timedelta
 
-
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("autocloudparking")
 ventana = tk.Tk()
-icono = tk.PhotoImage(file="icono.png")
-ventana.iconphoto(True, icono)
+ventana.iconbitmap("icono.ico")
 ventana.title("AUTOCLOUD PARKING")
-ventana.geometry("300x420")
+ventana.geometry("300x520")
 
 def abrir_principal():
     principal = tk.Tk()
     principal.title("AUTOCLOUD PARKING V1.0")
-    principal.iconphoto(True, icono)
+    principal.iconbitmap("icono.ico")
     principal.geometry("800x500")
     contenido = tk.Frame(principal, bg="#DEEAF6")
     contenido.pack(side="right", fill="both", expand=True)
@@ -38,14 +38,14 @@ def abrir_principal():
             placa = caja_placa.get().upper().strip()
             tipo = caja_tipo.get() 
             if placa == "" or tipo =="":
-                messagebox.showerror("Error", "Por favor complete todos los campos") 
+                messagebox.showerror("Error", "Por favor, complete todos los campos") 
                 return
             if tipo =="Bicicleta":
                 if not placa.isdigit() or len(placa) < 6 or len(placa) > 10:
                     messagebox.showerror("Error", "Documento invalido: solo numeros, de 6 a 10 digitos")    
                     return
             elif not placa.isalnum() or len(placa) < 5 or len(placa)>7:
-                messagebox.showerror("Error", "Placa inválida: debe contener 6 caracteres entre letras y números, sin espacios ni guiones.")
+                messagebox.showerror("Error", "Placa inválida: debe contener entre 5 y 7 caracteres alfanuméricos, sin espacios ni guiones.")
                 return
             conection = sqlite3.connect("autocloudparking.db")
             dentro = conection.execute("SELECT * FROM registro WHERE placa=? AND salida IS NULL", (placa,)).fetchone()
@@ -53,41 +53,43 @@ def abrir_principal():
                 messagebox.showerror("Error", "El vehiculo ya se encuentra registrado") 
             else:
                 conection.execute("INSERT OR IGNORE INTO vehiculo values(?,?)", (placa,tipo))
-                conection.execute("INSERT INTO registro (placa, entrada) VALUES (?, ?)", (placa, datetime.now().strftime("%d/%m/%Y %H:%M:%S")))
+                conection.execute("INSERT INTO registro (placa, entrada) VALUES (?, ?)", (placa, datetime.now().strftime("%Y/%m/%d %H:%M:%S")))
                 conection.commit()
                 messagebox.showinfo("Exito", "Registro exitoso")
                 caja_placa.delete(0, "end")
             conection.close()
-        tk.Button(contenido, text="REGISTAR",command=registrar,bg="#F8B810",fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=5)
-    def limpiar():
-        for cosa in contenido.winfo_children():
-            cosa.destroy()
+        tk.Button(contenido, text="REGISTRAR",command=registrar,bg="#F8B810",fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=5)
+        
     def pantalla_buscar_vehiculo():
         limpiar()
         tk.Label(contenido, text="BUSCAR VEHICULO",fg="#1B5BA5", bg="#DEEAF6", font=("Arial", 16, "bold")).pack(fill="x",pady=20)
         tk.Label(contenido,text="PLACA O DOCUMENTO",font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
         caja_placa = tk.Entry(contenido, width=25)
         caja_placa.pack(pady=5)
-        resultado = tk.Label(contenido, text="",font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6", justify="left")
+        resultado = tk.Label(contenido, text="",font=("Arial", 12, "bold"), fg="#12345A", bg="#DEEAF6")
         resultado.pack(pady=15)
+        tabla = ttk.Treeview(contenido, columns=("entrada", "salida"), show="headings", height=6)
+        tabla.heading("entrada", text="ENTRADA")
+        tabla.heading("salida", text="SALIDA")
+        tabla.column("entrada", width=150, anchor="center")
+        tabla.column("salida", width=150, anchor="center")
+        tabla.pack(pady=10)
         def buscar():
             Placa = caja_placa.get().upper().strip()
-            conecion = sqlite3.connect("autocloudparking.db") 
+            conecion = sqlite3.connect("autocloudparking.db")
             vehiculo = conecion.execute("SELECT * FROM vehiculo WHERE placa=?", (Placa,)).fetchone()
-            visitas = conecion.execute("SELECT entrada, salida FROM registro WHERE placa=?", (Placa,)).fetchall ()
+            visitas = conecion.execute("SELECT entrada, salida FROM registro WHERE placa=?", (Placa,)).fetchall()
             conecion.close()
             if vehiculo is None:
                 messagebox.showerror("Error", "Vehiculo no encontrado")
                 return
-            texto = f"\nPLACA:{vehiculo[0]}\nTIPO: {vehiculo[1]}\n\nvisitas:"
+            tabla.delete(*tabla.get_children())
+            resultado.config(text=f"PLACA: {vehiculo[0]}     TIPO: {vehiculo[1]}")
             for v in visitas:
-                texto = texto + f"\nentrada: {v[0]} salida: {v[1] or 'En el Parqueadero'} "
-            resultado.config(text=texto)
+                tabla.insert("", "end", values=(v[0], v[1] or "En el parqueadero"))
 
         tk.Button(contenido, text="BUSCAR",command=buscar, bg="#F8B810",fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=20)
-    def limpiar():
-        for cosa in contenido.winfo_children():
-            cosa.destroy()   
+    
     def pantalla_calcular_tarifa():
         limpiar()
         tk.Label(contenido, text="CALCULAR TARIFA", font=("Arial", 16, "bold"), fg="#1B5BA5", bg="#DEEAF6").pack(fill="x",pady=10)
@@ -106,7 +108,7 @@ def abrir_principal():
             if fila is None:
                 messagebox.showerror("Error", "vehiculo no encontrado")
             else:
-                entrada = datetime.strptime(fila[0], "%d/%m/%Y %H:%M:%S")
+                entrada = datetime.strptime(fila[0], "%Y/%m/%d %H:%M:%S")
                 segundos = (datetime.now() - entrada).total_seconds() 
                 horas = int(segundos // 3600) + 1
                 valor= horas * fila[1]
@@ -118,7 +120,7 @@ def abrir_principal():
                     messagebox.showerror("Error", "Calcular tarifa")
                     return
                 conecion = sqlite3.connect("autocloudparking.db")
-                conecion.execute("UPDATE registro SET salida=?, valor=? WHERE placa=? AND salida is NULL", (datetime.now().strftime("%d/%m/Y %H:%M:%S"), datos["valor"], datos["placa"] ))
+                conecion.execute("UPDATE registro SET salida=?, valor=? WHERE placa=? AND salida is NULL", (datetime.now().strftime("%Y/%m/%d %H:%M:%S"), datos["valor"], datos["placa"] ))
                 conecion.commit()
                 conecion.close()
                 messagebox.showinfo("Confirmar", "Confirmacion exitosa")
@@ -128,18 +130,14 @@ def abrir_principal():
         tk.Button(contenido, text="CALCULAR",command=calcular,bg="#F8B810", fg="#12345A",font=("Arial", 10, "bold"), width=15).pack(pady=10)
         tk.Button(contenido, text="CONFIRMAR", command=confirmar, bg="#1B5BA5", fg="white",font=("Arial", 10, "bold"), width=15).pack(pady=10)
        
-    def limpiar():
-        for cosa in contenido.winfo_children():
-            cosa.destroy()    
     def pantalla_generar_reporte():
         limpiar()
         tk.Label(contenido, text="GENERAR REPORTE", font=("Arial", 16, "bold"), fg="#1B5BA5", bg="#DEEAF6").pack(fill="x", pady=28)
         tk.Label(contenido, text="PERIODO", font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
-        tk.Label(contenido, text="PERIODO").pack
         caja_periodo = ttk.Combobox(contenido, values=["Diario", "Semanal", "Mensual", "Anual"], width=22, state="readonly")
         caja_periodo.pack(pady=5)
         tk.Label(contenido, text="TIPO VEHICULO", font=("Arial",10, "bold"),fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
-        caja_tipo = ttk.Combobox(contenido, values=["Todos", "Carro", "Moto", "Bicilceta"], width=22, state="readonly")
+        caja_tipo = ttk.Combobox(contenido, values=["Todos", "Carro", "Moto", "Bicicleta"], width=22, state="readonly")
         caja_tipo.pack(pady=5)
         resultado = tk.Label(contenido, text="",bg="#DEEAF6", font=("Arial", 12, "bold" ),justify="left")
         resultado.pack(pady=15)
@@ -147,7 +145,7 @@ def abrir_principal():
             periodo = caja_periodo.get()
             tipo = caja_tipo.get()
             if  periodo == "" or tipo =="":
-             messagebox.showerror("Error", "Selecone el periodo y tipo de vehiculo")
+             messagebox.showerror("Error", "Seleccione el periodo y tipo de vehiculo")
              return None
             hoy = datetime.now()
             if periodo == "Diario":
@@ -158,7 +156,7 @@ def abrir_principal():
                 desde = hoy.replace(day=1)
             else: desde = hoy.replace(month=1, day=1) 
             sql = "SELECT registro.placa, vehiculo.tipo, registro.entrada, registro.salida, registro.valor FROM registro JOIN vehiculo ON registro.placa = vehiculo.placa WHERE registro.salida >= ?"
-            valores = [desde.strftime("%d/%m/%y")]
+            valores = [desde.strftime("%Y/%m/%d")]
             if tipo != "Todos":
                 sql = sql + " AND vehiculo.tipo = ?"
                 valores.append(tipo)
@@ -177,7 +175,7 @@ def abrir_principal():
                 filas = consultar() 
                 if filas is None:
                     return
-                archivo = filedialog.asksaveasfilename(defaultextension=".xslx", filetypes=[("Excel", "*.xslx")])
+                archivo = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")])
                 if archivo !="":
                     libro = openpyxl.Workbook()
                     hoja = libro.active
@@ -198,7 +196,7 @@ def abrir_principal():
             columnas =[50,120,190,320,450]
             hoja = canvas.Canvas(archivo)
             hoja.setFont("Helvetica-Bold", 14)
-            hoja.drawString(50, 800, f"Reporte{caja_periodo.get()} - {caja_tipo.get()}")
+            hoja.drawString(50, 800, f"Reporte {caja_periodo.get()} - {caja_tipo.get()}")
             hoja.setFont("Helvetica-Bold",10)
             for i in range(5):
                 hoja.drawString(columnas[i], 770, titulos[i])
@@ -233,12 +231,12 @@ def abrir_principal():
     tk.Button(menu, text="CALCULAR TARIFA", command=pantalla_calcular_tarifa, **estilo).pack(fill="x", padx=10, pady=5)
     tk.Button(menu, text="GENERAR REPORTE", command=pantalla_generar_reporte, **estilo).pack(fill="x", padx=10, pady=5)
     tk.Button(menu, text="CERRAR SESION", command=principal.destroy, bg="#1B5BA5", fg="white", font=("Arial", 10, "bold")).pack(fill="x", padx=10, pady=5)
-    
+    pantalla_ingreso()
     principal.mainloop()
 def registar_usuario(evento=None):
     nueva = tk.Toplevel(ventana)
-    nueva.title("REGISTAR USUARIO")
-    nueva.geometry("300x300")
+    nueva.title("REGISTRAR USUARIO")
+    nueva.geometry("300x520")
     nueva.config(bg="#DEEAF6")
 
     tk.Label(nueva, text="USUARIO NUEVO",font=("Arial", 16, "bold"), fg="#1B5BA5", bg="#DEEAF6").pack(fill="x", pady=20)
@@ -270,11 +268,11 @@ def registar_usuario(evento=None):
         conecion = sqlite3.connect("autocloudparking.db")
         existe = conecion.execute("SELECT * FROM usuario  Where usuario=?", (usuario,)).fetchone()
         if existe:
-            messagebox.showerror("Error", "El usario ya existe",parent=nueva)
+            messagebox.showerror("Error", "El usuario ya existe",parent=nueva)
         else:
             conecion.execute("INSERT INTO usuario VALUES (?,?)", (usuario, hashlib.sha256(clave.encode()).hexdigest()))
             conecion.commit()
-            messagebox.showinfo("Usuario", "Usuario credo con exito",parent=nueva)
+            messagebox.showinfo("Usuario", "Usuario creado con éxito",parent=nueva)
             nueva.destroy()
         conecion.close()
     tk.Button(nueva, text="GUARDAR", command=guardar,bg="#F8B810", fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=20)
@@ -305,7 +303,7 @@ caja_contraseña.pack(pady=5)
 
 tk.Button(ventana, text="INGRESAR",command=ingresar,bg="#F8B810", fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=15)
 
-enlace = tk.Label(ventana, text="¿No tiesnes cuenta? Registrar usuario",fg="#1B5BA5", bg="#DEEAF6", cursor="hand2", font=("Arial", 9, "underline"))
+enlace = tk.Label(ventana, text="¿No tienes cuenta? Registrar usuario",fg="#1B5BA5", bg="#DEEAF6", cursor="hand2", font=("Arial", 9, "underline"))
 enlace.pack(pady=5)
 enlace.bind("<Button-1>", registar_usuario)
 
