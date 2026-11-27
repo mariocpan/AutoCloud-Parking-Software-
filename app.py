@@ -2,7 +2,9 @@ import tkinter as tk
 import sqlite3
 import hashlib
 import openpyxl
+import db
 import ctypes
+
 from reportlab.pdfgen import canvas
 from tkinter import filedialog
 from tkinter import ttk
@@ -236,6 +238,7 @@ def abrir_principal():
 def registar_usuario(evento=None):
     nueva = tk.Toplevel(ventana)
     nueva.title("REGISTRAR USUARIO")
+    nueva.iconbitmap("icono.ico")
     nueva.geometry("300x520")
     nueva.config(bg="#DEEAF6")
 
