@@ -10,32 +10,42 @@ from datetime import datetime, timedelta
 
 
 ventana = tk.Tk()
+icono = tk.PhotoImage(file="icono.png")
+ventana.iconphoto(True, icono)
 ventana.title("AUTOCLOUD PARKING")
-ventana.geometry("300x220")
+ventana.geometry("300x420")
 
 def abrir_principal():
     principal = tk.Tk()
     principal.title("AUTOCLOUD PARKING V1.0")
+    principal.iconphoto(True, icono)
     principal.geometry("800x500")
-    contenido = tk.Frame(principal)
+    contenido = tk.Frame(principal, bg="#DEEAF6")
     contenido.pack(side="right", fill="both", expand=True)
     def limpiar():
         for cosa in contenido.winfo_children():
             cosa.destroy()
     def pantalla_ingreso():
         limpiar()
-        tk.Label(contenido, text="REGISTRO DE VEHICULO",font=("Arial", 14, "bold")).pack(fill="x", pady=10)
-        tk.Label(contenido, text="PLACA").pack(fill="x", padx=10, pady=5)
-        caja_placa = tk.Entry(contenido)
+        tk.Label(contenido, text="REGISTRO DE VEHICULO",font=("Arial", 16, "bold"), fg="#1B5BA5", bg="#DEEAF6").pack(fill="x", pady=28)
+        tk.Label(contenido, text="PLACA O DOCUMENTO",font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
+        caja_placa = tk.Entry(contenido,width=25)
         caja_placa.pack()
-        tk.Label(contenido, text="TIPO DE VEHICULO").pack(fill="x",pady=5)
-        caja_tipo= ttk.Combobox(contenido, values=["Carro", "Moto", "Bicicleta"], state="readonly")
-        caja_tipo.pack()
+        tk.Label(contenido, text="TIPO DE VEHICULO",font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x",pady=5)
+        caja_tipo= ttk.Combobox(contenido, values=["Carro", "Moto", "Bicicleta"],width=22, state="readonly")
+        caja_tipo.pack(pady=5)
         def registrar():
             placa = caja_placa.get().upper().strip()
             tipo = caja_tipo.get() 
             if placa == "" or tipo =="":
                 messagebox.showerror("Error", "Por favor complete todos los campos") 
+                return
+            if tipo =="Bicicleta":
+                if not placa.isdigit() or len(placa) < 6 or len(placa) > 10:
+                    messagebox.showerror("Error", "Documento invalido: solo numeros, de 6 a 10 digitos")    
+                    return
+            elif not placa.isalnum() or len(placa) < 5 or len(placa)>7:
+                messagebox.showerror("Error", "Placa inválida: debe contener 6 caracteres entre letras y números, sin espacios ni guiones.")
                 return
             conection = sqlite3.connect("autocloudparking.db")
             dentro = conection.execute("SELECT * FROM registro WHERE placa=? AND salida IS NULL", (placa,)).fetchone()
@@ -48,17 +58,17 @@ def abrir_principal():
                 messagebox.showinfo("Exito", "Registro exitoso")
                 caja_placa.delete(0, "end")
             conection.close()
-        tk.Button(contenido, text="REGISTAR",command=registrar, bg="yellow").pack(pady=10)
+        tk.Button(contenido, text="REGISTAR",command=registrar,bg="#F8B810",fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=5)
     def limpiar():
         for cosa in contenido.winfo_children():
             cosa.destroy()
     def pantalla_buscar_vehiculo():
         limpiar()
-        tk.Label(contenido, text="BUSCAR VEHICULO",font=("Arial", 14, "bold")).pack(pady=10)
-        tk.Label(contenido,text="PLACA").pack()
-        caja_placa = tk.Entry(contenido)
-        caja_placa.pack()
-        resultado = tk.Label(contenido, text="", justify="left")
+        tk.Label(contenido, text="BUSCAR VEHICULO",fg="#1B5BA5", bg="#DEEAF6", font=("Arial", 16, "bold")).pack(fill="x",pady=20)
+        tk.Label(contenido,text="PLACA O DOCUMENTO",font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
+        caja_placa = tk.Entry(contenido, width=25)
+        caja_placa.pack(pady=5)
+        resultado = tk.Label(contenido, text="",font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6", justify="left")
         resultado.pack(pady=15)
         def buscar():
             Placa = caja_placa.get().upper().strip()
@@ -74,16 +84,17 @@ def abrir_principal():
                 texto = texto + f"\nentrada: {v[0]} salida: {v[1] or 'En el Parqueadero'} "
             resultado.config(text=texto)
 
-        tk.Button(contenido, text="BUSCAR",command=buscar, bg="yellow").pack(pady=10)
+        tk.Button(contenido, text="BUSCAR",command=buscar, bg="#F8B810",fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=20)
     def limpiar():
         for cosa in contenido.winfo_children():
             cosa.destroy()   
     def pantalla_calcular_tarifa():
         limpiar()
-        tk.Label(contenido, text="CALCULAR TARIFA", font=("Arial", 14, "bold")).pack(pady=10)
-        caja_placa= tk.Entry(contenido)
+        tk.Label(contenido, text="CALCULAR TARIFA", font=("Arial", 16, "bold"), fg="#1B5BA5", bg="#DEEAF6").pack(fill="x",pady=10)
+        tk.Label(contenido, text="PLACA O DOCUMENTO", font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
+        caja_placa= tk.Entry(contenido,width=25)
         caja_placa.pack()
-        resultado = tk.Label(contenido, text="", font=("Arial",12))
+        resultado = tk.Label(contenido, text="", font=("Arial",12),fg="#12345A", bg="#DEEAF6")
         resultado.pack(pady=15)
         datos = {}
 
@@ -114,24 +125,23 @@ def abrir_principal():
                 datos.clear()
                 resultado.config(text="")
                 caja_placa.delete(0, "end")       
-        tk.Button(contenido, text="CALCULAR",command=calcular, bg="yellow").pack(pady=10)
-        tk.Button(contenido, text="CONFIRMAR", command=confirmar, bg="green").pack(pady=10)
+        tk.Button(contenido, text="CALCULAR",command=calcular,bg="#F8B810", fg="#12345A",font=("Arial", 10, "bold"), width=15).pack(pady=10)
+        tk.Button(contenido, text="CONFIRMAR", command=confirmar, bg="#1B5BA5", fg="white",font=("Arial", 10, "bold"), width=15).pack(pady=10)
        
     def limpiar():
         for cosa in contenido.winfo_children():
             cosa.destroy()    
     def pantalla_generar_reporte():
         limpiar()
-        tk.Label(contenido, text="GENERAR REPORTE", font=("Arial", 14,"bold")).pack(pady=10)
-        
-        tk.Label(contenido, text="PERIODO", font=("Arial",12, "bold")).pack(pady=10)
+        tk.Label(contenido, text="GENERAR REPORTE", font=("Arial", 16, "bold"), fg="#1B5BA5", bg="#DEEAF6").pack(fill="x", pady=28)
+        tk.Label(contenido, text="PERIODO", font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
         tk.Label(contenido, text="PERIODO").pack
-        caja_periodo = ttk.Combobox(contenido, values=["Diario", "Semanal", "Mensual", "Anual"], state="readonly")
-        caja_periodo.pack()
-        tk.Label(contenido, text="TIPO VEHICULO", font=("Arial",12, "bold")).pack(pady=10)
-        caja_tipo = ttk.Combobox(contenido, values=["Todos", "Carro", "Moto", "Bicilceta"], state="readonly")
-        caja_tipo.pack()
-        resultado = tk.Label(contenido, text="", font=("Arial", 12, "bold" ),justify="left")
+        caja_periodo = ttk.Combobox(contenido, values=["Diario", "Semanal", "Mensual", "Anual"], width=22, state="readonly")
+        caja_periodo.pack(pady=5)
+        tk.Label(contenido, text="TIPO VEHICULO", font=("Arial",10, "bold"),fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
+        caja_tipo = ttk.Combobox(contenido, values=["Todos", "Carro", "Moto", "Bicilceta"], width=22, state="readonly")
+        caja_tipo.pack(pady=5)
+        resultado = tk.Label(contenido, text="",bg="#DEEAF6", font=("Arial", 12, "bold" ),justify="left")
         resultado.pack(pady=15)
         def consultar():
             periodo = caja_periodo.get()
@@ -206,55 +216,68 @@ def abrir_principal():
             hoja.save()
             messagebox.showinfo("PDF", "Reporte guardado")
               
-        tk.Button(contenido, text="GENERAR",command=generar, bg ="yellow").pack(pady=10)
-        tk.Button(contenido,text="DESCARGAR formato EXCEL",command=excel, bg="green").pack(pady=10)
-        tk.Button(contenido, text="DESCARGAR formato PDF", command=pdf, bg="red").pack(pady=10)
+        tk.Button(contenido, text="GENERAR",command=generar,bg="#F8B810", fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=10)
+        tk.Button(contenido,text="DESCARGAR formato EXCEL",command=excel,bg="#1B5BA5", fg="white", font=("Arial", 10, "bold"), width=25).pack(pady=5)
+        tk.Button(contenido, text="DESCARGAR formato PDF", command=pdf,bg="#1B5BA5", fg="white", font=("Arial", 10, "bold"), width=25).pack(pady=5)
 
-        
-    menu = tk.Frame(principal, bg="Blue")
+    
+    menu = tk.Frame(principal, bg="#DEEAF6")
     menu.pack(side="left", fill="y")
-    tk.Label(menu, text="MENU PRINCIPAL",bg="Blue", fg="White").pack(pady=10)
-    tk.Button(menu, text="REGISTRO DE VEHICULO",command=pantalla_ingreso).pack(fill="x", padx=10, pady=5)
-    tk.Button(menu, text="BUSCAR VEHICULO",command=pantalla_buscar_vehiculo).pack(fill="x", padx=10,pady=5)
-    tk.Button(menu, text="CALCULAR TARIFA",command=pantalla_calcular_tarifa ).pack(fill="x",padx=10,pady=5)
-    tk.Button(menu, text="GENERAR REPORTE",command=pantalla_generar_reporte).pack(fill="x",padx=10,pady=5)
-    tk.Button(menu, text="CERRAR SESION",command=principal.destroy,bg="red",fg="black").pack(fill="x",padx=10,pady=5)
+    logo = tk.PhotoImage(file="logo.png", master=principal).subsample(3)
+    tk.Label(menu, image=logo, bg="#DEEAF6").pack(pady=15)
+    tk.Label(menu, text="MENU PRINCIPAL", bg="#DEEAF6", fg="#1B5BA5", font=("Arial", 11, "bold")).pack(pady=10)
+
+    estilo = dict(bg="#F8B810", fg="#12345A", font=("Arial", 10, "bold"))
+    tk.Button(menu, text="REGISTRO DE VEHICULO", command=pantalla_ingreso, **estilo).pack(fill="x", padx=10, pady=5)
+    tk.Button(menu, text="BUSCAR VEHICULO", command=pantalla_buscar_vehiculo, **estilo).pack(fill="x", padx=10, pady=5)
+    tk.Button(menu, text="CALCULAR TARIFA", command=pantalla_calcular_tarifa, **estilo).pack(fill="x", padx=10, pady=5)
+    tk.Button(menu, text="GENERAR REPORTE", command=pantalla_generar_reporte, **estilo).pack(fill="x", padx=10, pady=5)
+    tk.Button(menu, text="CERRAR SESION", command=principal.destroy, bg="#1B5BA5", fg="white", font=("Arial", 10, "bold")).pack(fill="x", padx=10, pady=5)
+    
     principal.mainloop()
 def registar_usuario(evento=None):
     nueva = tk.Toplevel(ventana)
     nueva.title("REGISTAR USUARIO")
-    nueva.geometry("300x280")
+    nueva.geometry("300x300")
+    nueva.config(bg="#DEEAF6")
 
-    tk.Label(nueva, text="USUARIO NUEVO").pack(pady=5) 
-    caja_nuevo = tk.Entry(nueva)
-    caja_nuevo.pack()
-    tk.Label(nueva, text="CONTRASEÑA").pack(pady=5)
-    caja_clave = tk.Entry(nueva, show="*")
-    caja_clave.pack()
-    tk.Label(nueva, text="CONFIRMAR CONTRASEÑA").pack(pady=5)
-    caja_clave1 =tk.Entry(nueva, show="*")
-    caja_clave1.pack() 
+    tk.Label(nueva, text="USUARIO NUEVO",font=("Arial", 16, "bold"), fg="#1B5BA5", bg="#DEEAF6").pack(fill="x", pady=20)
+    tk.Label(nueva, text="USUARIO", font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5) 
+    caja_nuevo = tk.Entry(nueva, width=25)
+    caja_nuevo.pack(pady=5)
+    tk.Label(nueva, text="CONTRASEÑA",font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
+    caja_clave = tk.Entry(nueva, width=25, show="*")
+    caja_clave.pack(pady=5)
+    tk.Label(nueva, text="CONFIRMAR CONTRASEÑA", font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
+    caja_clave1 =tk.Entry(nueva, width=25, show="*")
+    caja_clave1.pack(pady=5) 
 
     def guardar():
         usuario = caja_nuevo.get().strip()
         clave   = caja_clave.get()
         if usuario =="" or clave =="":
-            messagebox.showerror("Error", "Registre todos los campos")
+            messagebox.showerror("Error", "Registre todos los campos", parent=nueva)
+            return
+        if len(usuario) < 3 or " " in usuario:
+            messagebox.showerror("Error", "El usuario debe tener minimo 3 caracteres y sin espacios", parent=nueva)
+            return
+        if len(clave) < 6:
+            messagebox.showerror("Error","La contraseña debe tener minimo 6 caracteres", parent=nueva) 
             return
         if clave != caja_clave1.get():
-            messagebox.showerror("Error", "Las contraseñas no coinciden")
+            messagebox.showerror("Error", "Las contraseñas no coinciden",parent=nueva)
             return
         conecion = sqlite3.connect("autocloudparking.db")
         existe = conecion.execute("SELECT * FROM usuario  Where usuario=?", (usuario,)).fetchone()
         if existe:
-            messagebox.showerror("Error", "El usario ya existe")
+            messagebox.showerror("Error", "El usario ya existe",parent=nueva)
         else:
             conecion.execute("INSERT INTO usuario VALUES (?,?)", (usuario, hashlib.sha256(clave.encode()).hexdigest()))
             conecion.commit()
-            messagebox.showinfo("Usuario", "Usuario credo con exitos")
+            messagebox.showinfo("Usuario", "Usuario credo con exito",parent=nueva)
             nueva.destroy()
         conecion.close()
-    tk.Button(nueva, text="GUARDAR", command=guardar, bg="blue" ).pack(pady=15)
+    tk.Button(nueva, text="GUARDAR", command=guardar,bg="#F8B810", fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=20)
          
 def ingresar():
     clave = hashlib.sha256(caja_contraseña.get().encode()).hexdigest()
@@ -267,17 +290,22 @@ def ingresar():
         abrir_principal()
     else:
         messagebox.showerror("Error", "Usuario o contraseña incorrectos")
-tk.Label(ventana, text="USUARIO").pack (pady=5)
-caja_usuario = tk.Entry(ventana)
-caja_usuario.pack()
 
-tk.Label(ventana, text="CONTRASEÑA").pack (pady=5)
-caja_contraseña = tk.Entry(ventana, show="*")
-caja_contraseña.pack()
+logo = tk.PhotoImage(file="logo.png").subsample(2)
+tk.Label(ventana, image=logo, bg="#DEEAF6").pack(pady=10)
 
-tk.Button(ventana, text="INGRESAR",command=ingresar, bg="yellow",fg="black").pack(pady=15)
+ventana.configure(bg="#DEEAF6")
+tk.Label(ventana, text="USUARIO", font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
+caja_usuario = tk.Entry(ventana, width=25)
+caja_usuario.pack(pady=5)
 
-enlace = tk.Label(ventana, text="¿No tiesnes cuenta? Registrar usuario", fg="blue", cursor="hand2", font=("Arial", 9, "underline"))
+tk.Label(ventana, text="CONTRASEÑA",font=("Arial", 10, "bold"), fg="#12345A", bg="#DEEAF6").pack(fill="x", padx=10, pady=5)
+caja_contraseña = tk.Entry(ventana, width=25, show="*")
+caja_contraseña.pack(pady=5)
+
+tk.Button(ventana, text="INGRESAR",command=ingresar,bg="#F8B810", fg="#12345A", font=("Arial", 10, "bold"), width=15).pack(pady=15)
+
+enlace = tk.Label(ventana, text="¿No tiesnes cuenta? Registrar usuario",fg="#1B5BA5", bg="#DEEAF6", cursor="hand2", font=("Arial", 9, "underline"))
 enlace.pack(pady=5)
 enlace.bind("<Button-1>", registar_usuario)
 
